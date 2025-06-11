@@ -1,7 +1,12 @@
-**For full readme and source code of native sigscan plugin check out [binja_native_sigscan](https://github.com/rikodot/binja_native_sigscan).**<br>
-This python script serves just as a loader for the actual plugin since it is written in C++ and might not be directly used with Binary Ninja's plugin manager.<br>
+# Native Predicate Solver Loader
 
-![preview](https://github.com/rikodot/binja_native_sigscan/blob/main/preview.gif)
+**For full documentation and source code of the Native Predicate Solver plugin, check out [native-predicate-solver](https://github.com/ScriptWare-Software/native-predicate-solver).**
+
+This Python script serves as a loader for the actual plugin since it is written in C++ and utilises Binary Ninja's native API.
+
+Full credit to [rikodot](https://github.com/rikodot) for this script, this is merely a modified fork of [his work](https://github.com/rikodot/binja_native_sigscan_loader).
+
+*original writing:*
 
 ### How it works
 On the start of Binary Ninja, this script checks if the related native plugin is present and either downloads it or verifies its version using native plugin's github repository. Native plugin requires its own repository which is also used for updating. Each native plugin requires its own loader. Unless there is a bug within this python script or an update is required or highly beneficial, this script is not supposed to be updated as it servers just as a loader. Exact behaviour is described within the script itself.

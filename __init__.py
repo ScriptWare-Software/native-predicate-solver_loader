@@ -23,11 +23,11 @@ import binaryninja
 #                                                                    if latest_hash != downloaded plugin hash -> alert to update (with link to latest release)
 
 # Plugin details
-plugin_name = 'sigscan'
+plugin_name = 'native-predicate-solver'
 
 # Repository details
-repo_owner = 'rikodot'
-repo_name = 'binja_native_sigscan'
+repo_owner = 'ScriptWare-Software'
+repo_name = 'native-predicate-solver'
 file_url = 'https://github.com/{}/{}/releases/latest/download'.format(repo_owner, repo_name)
 
 # File names in release section on github along with Binary Ninja versions for which they were compiled (leave whole variable blank if platform not supported)
@@ -41,30 +41,16 @@ file_url = 'https://github.com/{}/{}/releases/latest/download'.format(repo_owner
 #    ('DEV', 'DEV', 'sigscan_dev2.dll'), # anything in between 3.4.4169 and 3.4.4189 (inclusive) - all dev versions
 #    ]
 win_files = [
-    ('3.3.3996', '3.3.3996', '3996sigscan.dll'),
-    ('3.4.4271', '3.4.4271', '4271sigscan.dll'),
-    ('3.5.4526', '3.5.4526', '4526sigscan.dll'),
-    ('4.0.4958', '4.0.4958', '4958sigscan.dll'),
-    ('4.1.5747', '4.1.5747', '5747sigscan.dll'),
-    ('DEV', 'DEV', 'DEVsigscan.dll')
+    ('5.0.7290', '5.0.7290', '7290NativePredicateSolver.dll'),
+    ('DEV', 'DEV', 'NativePredicateSolver-dev.dll')
     ]
 linux_files = [
-    ('3.3.3996', '3.3.3996', '3996libsigscan.so'),
-    ('3.4.4271', '3.4.4271', '4271libsigscan.so'),
-    ('3.5.4526', '3.5.4526', '4526libsigscan.so'),
-    ('4.0.4911', '4.0.4911', '4911libsigscan.so'),
-    ('4.0.4958', '4.0.4958', '4958libsigscan.so'),
-    ('4.1.5747', '4.1.5747', '5747libsigscan.so'),
-    ('DEV', 'DEV', 'DEVlibsigscan.so')
+    ('5.0.7290', '5.0.7290', '7290libNativePredicateSolver.so'),
+    ('DEV', 'DEV', 'libNativePredicateSolver-dev.so')
     ]
 darwin_files = [
-    ('3.3.3996', '3.3.3996', '3996libsigscan.dylib'),
-    ('3.4.4271', '3.4.4271', '4271libsigscan.dylib'),
-    ('3.5.4526', '3.5.4526', '4526libsigscan.dylib'),
-    ('4.0.4911', '4.0.4911', '4911libsigscan.dylib'),
-    ('4.0.4958', '4.0.4958', '4958libsigscan.dylib'),
-    ('4.1.5747', '4.1.5747', '5747libsigscan.dylib'),
-    ('DEV', 'DEV', 'DEVlibsigscan.dylib')
+    ('5.0.7290', '5.0.7290', '7290libNativePredicateSolver.dylib'),
+    ('DEV', 'DEV', 'libNativePredicateSolver-dev.dylib')
     ]
 
 # Function that determines whether Binary Ninja version is supported (returns None if not, according file name if yes)
