@@ -42,14 +42,17 @@ file_url = 'https://github.com/{}/{}/releases/latest/download'.format(repo_owner
 #    ]
 win_files = [
     ('5.0.7290', '5.0.7290', '7290NativePredicateSolver.dll'),
+    ('5.0.7648', '5.0.7648', '7648NativePredicateSolver.dll'),
     ('DEV', 'DEV', 'NativePredicateSolver-dev.dll')
     ]
 linux_files = [
     ('5.0.7290', '5.0.7290', '7290libNativePredicateSolver.so'),
+    ('5.0.7648', '5.0.7648', '7648libNativePredicateSolver.so'),
     ('DEV', 'DEV', 'libNativePredicateSolver-dev.so')
     ]
 darwin_files = [
     ('5.0.7290', '5.0.7290', '7290libNativePredicateSolver.dylib'),
+    ('5.0.7648', '5.0.7648', '7648libNativePredicateSolver.dylib'),
     ('DEV', 'DEV', 'libNativePredicateSolver-dev.dylib')
     ]
 
