@@ -1,95 +1,60 @@
 import os
 import sys
 import requests
-import bs4
 import binaryninja
-
-# Logic:
-# ver, hash = native_plugins_data folder exists ? (current_native_plugin_data file exists ? ver, hash : none) : none
-# plugin_found = current_native_plugin file exists ? true : false
-# if !plugin_found -> download plugin && create (or overwrite) current_native_plugin_data file containing latest ver and latest hash
-# if plugin_found && ver != latest_ver && ver != none && hash == downloaded plugin hash -> alert user he is using outdated plugin (with link to latest release)
-# if plugin_found && ver != latest_ver && ver != none && hash != downloaded plugin hash -> delete current_native_plugin_data file &&
-#                                                                    download latest plugin to temp, calculate its hash &&
-#                                                                    if latest_hash == downloaded plugin hash -> save latest_hash and latest_ver to current_native_plugin_data file &&
-#                                                                           delete file in temp
-# if plugin_found && ver == latest_ver && hash != downloaded plugin hash -> delete current_native_plugin_data file && download latest plugin to temp, calculate its hash &&
-#                                                                    if latest_hash == downloaded plugin hash -> save latest_hash and latest_ver to current_native_plugin_data file &&
-#                                                                           delete file in temp
-#                                                                    if latest_hash != downloaded plugin hash -> alert to update (with link to latest release)
-# if plugin_found && ver == none && hash == none -> download latest plugin to temp, calculate its hash &&
-#                                                                    if latest_hash == downloaded plugin hash -> save latest_hash and latest_ver to current_native_plugin_data file &&
-#                                                                           delete file in temp
-#                                                                    if latest_hash != downloaded plugin hash -> alert to update (with link to latest release)
+import re
 
 # Plugin details
 plugin_name = 'native-predicate-solver'
+plugin_filename_base = 'NativePredicateSolver'
 
 # Repository details
 repo_owner = 'ScriptWare-Software'
 repo_name = 'native-predicate-solver'
-file_url = 'https://github.com/{}/{}/releases/latest/download'.format(repo_owner, repo_name)
 
-# File names in release section on github along with Binary Ninja versions for which they were compiled (leave whole variable blank if platform not supported)
-# Both version variables are inclusive meaning any Binary Ninja version in between is supported, DO NOT include '-dev' suffix so instead of '3.4.4189-dev', use just '3.4.4189')
-# You can also support all dev version by replacing both versions with 'DEV' (example below), this is useful because new dev versions roll out almost on daily basis
-# but the problem is when dev version becomes stable, the loader must be updated accordingly
-# Example:
-# win_files = [
-#    ('3.1.3469', '3.3.3996', 'sigscan.dll'), # anything in between 3.1.3469 and 3.3.3996 (inclusive) - specific stable versions
-#    ('3.4.4169', '3.4.4189', 'sigscan_dev.dll'), # anything in between 3.4.4169 and 3.4.4189 (inclusive) - specific dev versions
-#    ('DEV', 'DEV', 'sigscan_dev2.dll'), # anything in between 3.4.4169 and 3.4.4189 (inclusive) - all dev versions
-#    ]
-win_files = [
-    ('5.0.7290', '5.0.7290', '7290NativePredicateSolver.dll'),
-    ('5.0.7648', '5.0.7648', '7648NativePredicateSolver.dll'),
-    ('DEV', 'DEV', 'NativePredicateSolver-dev.dll')
-    ]
-linux_files = [
-    ('5.0.7290', '5.0.7290', '7290libNativePredicateSolver.so'),
-    ('5.0.7648', '5.0.7648', '7648libNativePredicateSolver.so'),
-    ('DEV', 'DEV', 'libNativePredicateSolver-dev.so')
-    ]
-darwin_files = [
-    ('5.0.7290', '5.0.7290', '7290libNativePredicateSolver.dylib'),
-    ('5.0.7648', '5.0.7648', '7648libNativePredicateSolver.dylib'),
-    ('DEV', 'DEV', 'libNativePredicateSolver-dev.dylib')
-    ]
+def get_latest_release_info():
+    api_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest'
+    try:
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except Exception:
+        return None
 
-# Function that determines whether Binary Ninja version is supported (returns None if not, according file name if yes)
-def is_version_supported(files):
-    # Get current Binary Ninja version
-    version_numbers = binaryninja.core_version().split()[0].split('-')[0].split('.')
-    major, minor, build = map(int, version_numbers)
-    dev_file = None
-
-    # Loop through files for current platform and see if our version is supported by any
-    for entry in files:
-        min_ver, max_ver, file = entry
-
-        # first check all non dev versions (there might be specific binary for specific dev versions so use that and if none found then we can use binary for all dev versions)
-        if (min_ver != 'DEV' and max_ver != 'DEV'):
-            min_parts = min_ver.split('.')
-            max_parts = max_ver.split('.')
-
-            major_match = (major >= int(min_parts[0]) and major <= int(max_parts[0]))
-            minor_match = (minor >= int(min_parts[1]) and minor <= int(max_parts[1]))
-            build_match = (build >= int(min_parts[2]) and build <= int(max_parts[2]))
-
-            if major_match and minor_match and build_match:
-                return file
-        else:
-            dev_file = file
-    
-    # If we are on dev, check if there is a file for all dev versions
-    if ('-dev' in binaryninja.core_version() and dev_file != None and len(dev_file) > 0):
-        return dev_file
-
+def parse_binary_filename(filename, extension):
+    pattern = rf'^{plugin_filename_base}-(.+)\.{extension}$'
+    match = re.match(pattern, filename)
+    if match:
+        return match.group(1)
     return None
 
-# Function that determines whether system is supported
-def is_system_supported(file_name):
-    return file_name != None and len(file_name) > 0
+def find_compatible_binary(release_data, platform_extension):
+    current_version = binaryninja.core_version().split()[0].split('-')[0]
+    is_dev = '-dev' in binaryninja.core_version()
+
+    assets = release_data.get('assets', [])
+
+    exact_match = None
+    dev_match = None
+
+    for asset in assets:
+        filename = asset['name']
+        version = parse_binary_filename(filename, platform_extension)
+
+        if version:
+            if version == 'dev' and is_dev:
+                dev_match = asset
+            elif version == current_version:
+                exact_match = asset
+                break
+
+    if exact_match:
+        return exact_match
+    elif dev_match and is_dev:
+        return dev_match
+
+    return None
 
 # Function that determines whether native_plugins_data folder exists
 def data_folder_exists():
@@ -180,43 +145,34 @@ def alert_user(description):
     binaryninja.interaction.show_message_box('{} (Native plugin loader)'.format(plugin_name), description, binaryninja.enums.MessageBoxButtonSet.OKButtonSet, binaryninja.enums.MessageBoxIcon.InformationIcon)
 
 # Function that does the actual work
-def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, darwin_files):
-    # Determine OS we are running on
+def check_for_updates():
     platform = sys.platform.lower()
 
-    # Windows
     if platform.startswith('win'):
-        files = win_files
-    # Linux
+        platform_ext = 'dll'
     elif platform.startswith('linux'):
-        files = linux_files
-    # Mac
+        platform_ext = 'so'
     elif platform.startswith('darwin'):
-        files = darwin_files
+        platform_ext = 'dylib'
     else:
-        alert_user(plugin_name, 'Unsupported platform')
-        return
-    
-    # Check Binary Ninja version and possible get file name for current version
-    file = is_version_supported(files)
-    if not file:
-        version_numbers = binaryninja.core_version().split()[0].split('-')[0].split('.')
-        major, minor, build = map(int, version_numbers)
-        alert_user('Current version of Binary Ninja ({}) is not supported.'.format(str(major) + '.' + str(minor) + '.' + str(build)))
+        alert_user('Unsupported platform')
         return
 
-    # Create url for file we need
-    file_url = '{}/{}'.format(file_url, file)
+    release_data = get_latest_release_info()
+    if not release_data:
+        alert_user('Failed to fetch release information from GitHub')
+        return
 
-    # Retrieve the HTML of the release page
-    release_url = 'https://github.com/{}/{}/releases/latest'.format(repo_owner, repo_name)
-    response = requests.get(release_url)
-    html = response.content
+    latest_version = release_data.get('tag_name', 'Unknown')
 
-    # Parse the HTML to extract the release version
-    soup = bs4.BeautifulSoup(html, 'html.parser')
-    latest_version_tag = getattr(soup.find('span', {'class': 'css-truncate-target'}), 'text', None)
-    latest_version = latest_version_tag.strip() if latest_version_tag else None
+    compatible_asset = find_compatible_binary(release_data, platform_ext)
+    if not compatible_asset:
+        current_version = binaryninja.core_version().split()[0]
+        alert_user(f'No compatible binary found for Binary Ninja version {current_version}')
+        return
+
+    file = compatible_asset['name']
+    file_url = compatible_asset['browser_download_url']
 
     # Make sure we have data folder
     if not data_folder_exists():
@@ -234,7 +190,7 @@ def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, d
                 return
 
     # Verify we have correct file
-    if (is_system_supported(file) and latest_version != None):
+    if file and latest_version:
         plugin_data = (read_data_file() if data_file_exists() else None) if data_folder_exists() else None
         # Check if we have all required data (version, hash, file name)
         if plugin_data == None or len(plugin_data) != 3 or plugin_data[0] == None or plugin_data[1] == None or plugin_data[2] == None:
@@ -339,7 +295,7 @@ class Updater(binaryninja.BackgroundTaskThread):
         binaryninja.BackgroundTaskThread.__init__(self, 'Native plugin loader - checking for updates on: {}'.format(plugin_name), True)
 
     def run(self):
-        check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, darwin_files)
+        check_for_updates()
 
 obj = Updater()
 obj.start()
